@@ -83,7 +83,24 @@ class DnsMadeEasy
 
   def create_record(domain_name, name, type, value, options = {})
     body = {"name" => name, "type" => type, "value" => value, "ttl" => 3600, "gtdLocation" => "DEFAULT"}
-    post "/dns/managed/#{get_id_by_domain(domain_name)}/records/", body.merge(options)
+    response = post_with_full_response "/dns/managed/#{get_id_by_domain(domain_name)}/records/", body.merge(options)
+    unparsed_json = response.body == "" ? "{}" : response.body
+    JSON.parse(unparsed_json)
+  rescue => e
+    if response.present?
+      raise CreateRecordException.new(response.to_hash, unparsed_json), e.message
+    else
+      raise
+    end
+  end
+
+  class CreateRecordException < StandardError
+    attr_accessor :response_headers, :response_body
+
+    def initialize(response_headers, response_body)
+      @response_headers = response_headers
+      @response_body = response_body
+    end
   end
 
   def create_a_record(domain_name, name, value, options = {})
@@ -173,7 +190,22 @@ class DnsMadeEasy
     end
   end
 
+  def post_with_full_response(path, body)
+    request_with_full_response(path) do |uri|
+      req = Net::HTTP::Post.new(uri.path)
+      req.body = body.to_json
+      req
+    end
+  end
+
   def request(path)
+    response = request_with_full_response(path, &Proc.new)
+    unparsed_json = response.body == "" ? "{}" : response.body
+
+    JSON.parse(unparsed_json)
+  end
+
+  def request_with_full_response(path)
     uri = URI("#{base_uri}#{path}")
 
     http = Net::HTTP.new(uri.host, uri.port)
@@ -187,10 +219,7 @@ class DnsMadeEasy
       request[key] = value
     end
 
-    response = http.request(request)
-    unparsed_json = response.body == "" ? "{}" : response.body
-
-    JSON.parse(unparsed_json)
+    http.request(request)
   end
 
   def request_headers
