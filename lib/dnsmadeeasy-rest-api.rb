@@ -87,7 +87,7 @@ class DnsMadeEasy
     unparsed_json = response.body == "" ? "{}" : response.body
     JSON.parse(unparsed_json)
   rescue => e
-    raise if response.body.strip.empty?
+    raise if response.nil? || response.body.strip.empty?
     fail CreateRecordException.new(response.to_hash, unparsed_json, body, e.message)
   end
 
