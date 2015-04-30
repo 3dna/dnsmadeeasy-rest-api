@@ -87,19 +87,18 @@ class DnsMadeEasy
     unparsed_json = response.body == "" ? "{}" : response.body
     JSON.parse(unparsed_json)
   rescue => e
-    if response.present?
-      raise CreateRecordException.new(response.to_hash, unparsed_json), e.message
-    else
-      raise
-    end
+    raise if response.body.strip.empty?
+    fail CreateRecordException.new(response.to_hash, unparsed_json, body, e.message)
   end
 
   class CreateRecordException < StandardError
-    attr_accessor :response_headers, :response_body
+    attr_accessor :response_headers, :response_body, :request_body
 
-    def initialize(response_headers, response_body)
+    def initialize(response_headers, response_body, request_body, message)
       @response_headers = response_headers
       @response_body = response_body
+      @request_body = request_body
+      super(message)
     end
   end
 

@@ -190,14 +190,38 @@ describe DnsMadeEasy do
 
     let(:domain_name) { 'something.wanelo.com' }
     let(:name) { 'test' }
+    let(:body) do
+      {
+        "name" => 'test',
+        "type" => 'A',
+        "value" => '192.168.1.1',
+        "ttl" => 3600,
+        "gtdLocation" => "DEFAULT"
+      }
+    end
 
     it 'creates a record' do
       stub_request(:post, "https://api.dnsmadeeasy.com/V2.0/dns/managed/123/records/").
-        with(headers: request_headers, body: {"name" => 'test', "type" => 'A', "value" => '192.168.1.1', "ttl" => 3600, "gtdLocation" => "DEFAULT"}.to_json).
+        with(headers: request_headers, body: body.to_json).
         to_return(:status => 200, :body => response, :headers => {})
 
 
       expect(subject.create_record(domain_name, 'test', 'A', '192.168.1.1')).to eq({})
+    end
+
+    it 'captures the request and response if there is failure with parsing' do
+      stub_request(:post, "https://api.dnsmadeeasy.com/V2.0/dns/managed/123/records/")
+        .with(headers: request_headers, body: body.to_json)
+        .to_return(:status => 500, :body => '<html></html>', :headers => {})
+
+      begin
+        subject.create_record(domain_name, 'test', 'A', '192.168.1.1')
+        fail
+      rescue => e
+        expect(e.response_headers).to eq({})
+        expect(e.response_body).to eq '<html></html>'
+        expect(e.request_body).to eq body
+      end
     end
   end
 
