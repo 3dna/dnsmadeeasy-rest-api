@@ -54,18 +54,19 @@ class DnsMadeEasy
   # ------------- RECORDS -------------
   # -----------------------------------
 
-  def records_for(domain_name)
-    get "/dns/managed/#{get_id_by_domain(domain_name)}/records"
+  def records_for(domain_name, options={})
+    query_params = options_to_params(options)
+    get "/dns/managed/#{get_id_by_domain(domain_name)}/records?#{query_params}"
   end
 
   def find(domain_name, name, type)
-    records = get "/dns/managed/#{get_id_by_domain(domain_name)}/records?recordName=#{name}&type=#{type}"
+    records = records_for(domain_name, {name: name, type: type})
 
     records['data'].first
   end
 
   def find_record_id(domain_name, name, type)
-    records = get "/dns/managed/#{get_id_by_domain(domain_name)}/records?recordName=#{name}&type=#{type}"
+    records = records_for(domain_name, {name: name, type: type})
 
     records['data'].map{ |r| r['id'] }
   end
@@ -141,6 +142,16 @@ class DnsMadeEasy
   end
 
   private
+
+  def options_to_params(options)
+    filtered_options = options.reject { |k, v|
+      v.to_s.empty?
+    }.select { |k, _|
+      ['name', 'type'].include?(k.to_s)
+    }
+    filtered_options[:recordName] = filtered_options.delete(:name) if filtered_options.has_key?(:name)
+    URI.encode_www_form(filtered_options.to_a)
+  end
 
   def get(path)
     request(path) do |uri|
