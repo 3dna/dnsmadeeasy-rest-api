@@ -59,15 +59,15 @@ class DnsMadeEasy
   end
 
   def find(domain_name, name, type)
-    records = records_for(domain_name)
-    records['data'].detect { |r| r['name'] == name && r['type'] == type }
+    records = get "/dns/managed/#{get_id_by_domain(domain_name)}/records?recordName=#{name}&type=#{type}"
+
+    records['data'].first
   end
 
   def find_record_id(domain_name, name, type)
-    records = records_for(domain_name)
+    records = get "/dns/managed/#{get_id_by_domain(domain_name)}/records?recordName=#{name}&type=#{type}"
 
-    records['data'].select { |r| r['name'] == name && r['type'] == type }
-                   .map    { |r| r['id'] }
+    records['data'].map{ |r| r['id'] }
   end
 
   def delete_records(domain_name, ids = [])
@@ -144,7 +144,7 @@ class DnsMadeEasy
 
   def get(path)
     request(path) do |uri|
-      Net::HTTP::Get.new(uri.path)
+      Net::HTTP::Get.new(uri)
     end
   end
 
