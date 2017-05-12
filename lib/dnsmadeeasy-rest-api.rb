@@ -56,17 +56,18 @@ class DnsMadeEasy
 
   def records_for(domain_name, options={})
     query_params = options_to_params(options)
+
     get "/dns/managed/#{get_id_by_domain(domain_name)}/records?#{query_params}"
   end
 
   def find(domain_name, name, type)
-    records = records_for(domain_name, {name: name, type: type})
+    records = records_for(domain_name, name: name, type: type)
 
     records['data'].first
   end
 
   def find_record_id(domain_name, name, type)
-    records = records_for(domain_name, {name: name, type: type})
+    records = records_for(domain_name, name: name, type: type)
 
     records['data'].map{ |r| r['id'] }
   end

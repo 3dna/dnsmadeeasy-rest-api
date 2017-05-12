@@ -96,8 +96,6 @@ describe DnsMadeEasy do
   end
 
   describe '#records_for' do
-    let(:response) { "{}" }
-
     before do
       subject.stub(:get_id_by_domain).with('something.wanelo.com').and_return(123)
     end
@@ -105,9 +103,43 @@ describe DnsMadeEasy do
     it 'returns all records for a given domain' do
       stub_request(:get, "https://api.dnsmadeeasy.com/V2.0/dns/managed/123/records").
         with(:headers => request_headers).
-        to_return(:status => 200, :body => response, :headers => {})
+        to_return(:status => 200, :body => "{}", :headers => {})
 
       expect(subject.records_for('something.wanelo.com')).to eq({})
+    end
+
+    context 'filters' do
+      let(:response) {{
+        'data' => [
+          { 'name' => 'demo', 'type' => 'A', 'id' => 123},
+          { 'name' => 'demo', 'type' => 'A', 'id' => 143}
+        ]
+      }}
+
+      it 'returns filtered records for a given domain' do
+        stub_request(:get, "https://api.dnsmadeeasy.com/V2.0/dns/managed/123/records?type=A&recordName=demo").
+          with(:headers => request_headers).
+          to_return(:status => 200, :body => response.to_json, :headers => {})
+
+        expect(subject.records_for('something.wanelo.com', name: 'demo', type: 'A')).to eq(response)
+      end
+
+      it 'returns filtered records with just the type' do
+        stub_request(:get, "https://api.dnsmadeeasy.com/V2.0/dns/managed/123/records?type=A").
+          with(:headers => request_headers).
+          to_return(:status => 200, :body => response.to_json, :headers => {})
+
+        expect(subject.records_for('something.wanelo.com', type: 'A')).to eq(response)
+      end
+
+      it 'returns filtered records with just the name' do
+
+          stub_request(:get, "https://api.dnsmadeeasy.com/V2.0/dns/managed/123/records?recordName=demo").
+            with(:headers => request_headers).
+            to_return(:status => 200, :body => response.to_json, :headers => {})
+
+          expect(subject.records_for('something.wanelo.com', name: 'demo')).to eq(response)
+      end
     end
   end
 
@@ -126,7 +158,7 @@ describe DnsMadeEasy do
     end
 
     it 'finds the first record that matches name and type' do
-      stub_request(:get, "https://api.dnsmadeeasy.com/V2.0/dns/managed/123/records?recordName=demo&type=A").
+      stub_request(:get, "https://api.dnsmadeeasy.com/V2.0/dns/managed/123/records?type=A&recordName=demo").
         with(:headers => request_headers).
         to_return(:status => 200, :body => response.to_json, :headers => {})
 
@@ -149,7 +181,7 @@ describe DnsMadeEasy do
     end
 
     it 'finds the specified record given a name and a type' do
-      stub_request(:get, "https://api.dnsmadeeasy.com/V2.0/dns/managed/123/records?recordName=demo&type=A").
+      stub_request(:get, "https://api.dnsmadeeasy.com/V2.0/dns/managed/123/records?type=A&recordName=demo").
         with(:headers => request_headers).
         to_return(:status => 200, :body => response.to_json, :headers => {})
 
